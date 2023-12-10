@@ -300,7 +300,9 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
     #6/28/2021: Make this code compatible with
     #directory structures that are different from
     #our MR exam directories on \\researchfiles.radiology.ucsf.edu
-    if('//researchfiles' in self.exampath and ('ispy2' in self.exampath or 'ispy_2019' in self.exampath or 'ispy_2022' in self.exampath or 'acrin_6698' in self.exampath) ):
+    #if('//researchfiles' in self.exampath and ('ispy2' in self.exampath or 'ispy_2019' in self.exampath or 'ispy_2022' in self.exampath or 'acrin_6698' in self.exampath) ):
+    if (1 == 2):
+      print("Scanning via FOLDER STRUCTURE")
       #study folder name is between the 4th and 5th slashes
       self.studystr = self.exampath[(int(slashinds[3])+1):int(slashinds[4])]
       #Correction: ispy_2019 disk contains exams that belong to ispy2 study
@@ -316,11 +318,13 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
       #folder with visit name in it is between the 7th and 8th slashes
       self.visitstr = self.exampath[(int(slashinds[6])+1):int(slashinds[7])]
     else:
+      print("Scanning the DICOM HEADER!")
       #6/28/2021: Read info from DICOM header instead of
       #directory for 'generic' exams with other directory structures
       folders = [directory for directory in os.listdir(self.exampath) if os.path.isdir(os.path.join(self.exampath,directory))]
       dcm_folder_found = 0
       for i in range(len(folders)):
+        print("Looping through folders")
         curr_path = os.path.join(self.exampath,folders[i])
         curr_files = [f for f in os.listdir(curr_path) if f.endswith('.dcm')]
         curr_FILES = [f for f in os.listdir(curr_path) if f.endswith('.DCM')]
@@ -346,6 +350,7 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
             try:
               self.studystr = hdr_dcm1[0x8,0x1030].value #Study Description
             except:
+              print("Trial Name Unknown")
               self.studystr = 'Trial Name Unknown'
 
           try:
@@ -354,21 +359,26 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
             try:
               self.sitestr = hdr_dcm1[0x8,0x80].value #Institution Name
             except:
+              print("Site Unknown")
               self.sitestr = 'Site Unknown'
 
           try:
             self.idstr = hdr_dcm1[0x12,0x40].value #Clinical Trial Subject ID
           except:
+            print("ID Unknown")
             self.idstr = 'ID Unknown'
 
           try:
             self.visitstr = hdr_dcm1[0x12,0x50].value #Clinical Trial Time Point ID
+            print(f"RAW Visitstr: {self.visitstr}")
             #7/4/2021: Try to use directory structure if visit number not found
             #in Clinical Trial Time Point id header field
             if('1' not in self.visitstr and '2' not in self.visitstr and '3' not in self.visitstr and '4' not in self.visitstr and '5' not in self.visitstr):
+              print("Entering viststr ln 376")
               #6/29/2021: Default to 'Visit unknown',
               #change this if visit is found in exampath
               if(self.studystr == 'ispy_2022' or self.studystr == 'ispy2.2' or ('//researchfiles' in self.exampath and 'ispy_2022' in self.exampath)):
+                print("Check VISITSTR via ISPY DIRECTORY PATHING")
                 self.visitstr = 'Visit unknown'
                 if('v10' in self.exampath):
                   self.visitstr = 'A0'
@@ -398,6 +408,7 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
                   self.visitstr = 'B12W'
 
               else:
+                print("Check VISITSTR via other method -- unknown")
                 self.visitstr = 'Visit unknown'
                 if('v10' in self.exampath):
                   self.visitstr = 'MR1'
@@ -415,6 +426,7 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
           #6/29/2021: Default to 'Visit unknown',
           #change this is visit is found in exampath
               if(self.studystr == 'ispy_2022' or self.studystr == 'ispy2.2' or ('//researchfiles' in self.exampath and 'ispy_2022' in self.exampath)):
+                print("Exception: Check VISITSTR via ISPY DIRECTORY PATHING")
                 self.visitstr = 'Visit unknown'
                 if('v10' in self.exampath):
                   self.visitstr = 'A0'
@@ -444,6 +456,7 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
                   self.visitstr = 'B12W'
 
               else:
+                print("Check VISITSTR via OTHER -- unknown")
                 self.visitstr = 'Visit unknown'
                 if('v10' in self.exampath):
                   self.visitstr = 'MR1'
@@ -802,7 +815,7 @@ class DCE_IDandPhaseSelectLogic(ScriptedLoadableModuleLogic):
       if('v73' in exampath):
         visitnum = 'B12W'
 
-      ## visitnum = visitstr
+      visitnum = visitstr
 
     #Edit 7/28/2020: Must have this before you process other visits.
     #This is because by default, the 2nd module reads the 1st node's image as precontrast.
