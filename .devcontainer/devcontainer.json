@@ -14,7 +14,8 @@
 				"editor.fontWeight": "600"
 			},
 			"extensions": [
-				"streetsidesoftware.code-spell-checker"
+				"streetsidesoftware.code-spell-checker",
+				"ms-python.python"
 			]
 		}
 	},
