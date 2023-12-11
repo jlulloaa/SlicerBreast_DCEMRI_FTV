@@ -39,3 +39,19 @@ ENV PATH="${PATH}:/home/vscode/miniconda3/bin"
 RUN pip install dicom-decompress
 RUN conda install gdcm -c conda-forge
 
+# Generate Report (import wx)
+RUN sudo apt-get install python-wxtools -y
+RUN sudo apt-get install build-essential libgtk-3-dev -y
+#RUN pip install wxPython
+#RUN conda install wxpython -c conda-forge -y
+RUN ~/tmp/Slicer-5.6.0-linux-amd64/bin/../bin/PythonSlicer -m pip install -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython
+RUN sudo apt install libsdl2-dev -y
+# 3DSlicerLogo.PNG  --> 3DSlicerLogo.png
+RUN mv ~/tmp/Slicer-5.6.0-linux-amd64/slicer.org/Extensions-32390/Breast_DCEMRI_FTV/lib/Slicer-5.6/qt-scripted-modules/Breast_DCEMRI_FTV_plugins2/3DSlicerLogo.PNG ~/tmp/Slicer-5.6.0-linux-amd64/slicer.org/Extensions-32390/Breast_DCEMRI_FTV/lib/Slicer-5.6/qt-scripted-modules/Breast_DCEMRI_FTV_plugins2/3DSlicerLogo.png
+
+## Issues to resolve: 
+## - divide by zero ser value 
+#Traceback (most recent call last):
+#  File "/home/vscode/tmp/Slicer-5.6.0-linux-amd64/slicer.org/Extensions-32390/Breast_DCEMRI_FTV/lib/Slicer-5.6/qt-scripted-modules/DCE_TumorMapProcess.py", line 1262, in showSagittalMIPFromNode
+#    img = inputVolume.GetImageData()
+#AttributeError: 'MRMLCorePython.vtkMRMLScalarVolumeDisplayNode' object has no attribute 'GetImageData'

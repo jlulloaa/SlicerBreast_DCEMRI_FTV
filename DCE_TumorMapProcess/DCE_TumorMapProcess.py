@@ -307,196 +307,47 @@ class DCE_TumorMapProcessWidget(ScriptedLoadableModuleWidget):
     #6/28/2021: Make this code compatible with
     #directory structures that are different from
     #our MR exam directories on \\researchfiles.radiology.ucsf.edu
-    if('//researchfiles' in self.exampath and ('ispy2' in self.exampath or 'ispy_2019' in self.exampath or 'ispy_2022' in self.exampath or 'acrin_6698' in self.exampath) ):
-      #study folder name is between the 4th and 5th slashes
-      self.studystr = self.exampath[(int(slashinds[3])+1):int(slashinds[4])]
-      #Correction: ispy_2019 disk contains exams that belong to ispy2 study
-      if(self.studystr == 'ispy_2019'):
-        self.studystr = 'ispy2'
-      if(self.studystr == 'ispy_2022'):
-        self.studystr = 'ispy2.2'
-      #site folder name is between the 5th and 6th slashes
-      self.sitestr = self.exampath[(int(slashinds[4])+1):int(slashinds[5])]
-      #ISPY ID folder name is between the 6th and 7th slashes
-      self.idstr = self.exampath[(int(slashinds[5])+1):int(slashinds[6])]
-      self.idpath = self.exampath[0:int(slashinds[6])] #full path to ispy id folder
-      #folder with visit name in it is between the 7th and 8th slashes
-      self.visitstr = self.exampath[(int(slashinds[6])+1):int(slashinds[7])]
-    else:
-      #6/28/2021: Read info from DICOM header instead of
-      #directory for 'generic' exams with other directory structures
+    #6/28/2021: Read info from DICOM header instead of
+    #directory for 'generic' exams with other directory structures
 
+    try:
+      self.studystr = hdr_dcm1[0x12,0x10].value #Clinical Trial Sponsor Name
+    except:
       try:
-        self.studystr = hdr_dcm1[0x12,0x10].value #Clinical Trial Sponsor Name
+        self.studystr = hdr_dcm1[0x8,0x1030].value #Study Description
       except:
-        try:
-          self.studystr = hdr_dcm1[0x8,0x1030].value #Study Description
-        except:
-          self.studystr = 'Trial Name Unknown'
+        self.studystr = 'Trial Name Unknown'
 
+    try:
+      self.sitestr = hdr_dcm1[0x12,0x31].value #Clinical Trial Site Name
+    except:
       try:
-        self.sitestr = hdr_dcm1[0x12,0x31].value #Clinical Trial Site Name
+        self.sitestr = hdr_dcm1[0x8,0x80].value #Institution Name
       except:
-        try:
-          self.sitestr = hdr_dcm1[0x8,0x80].value #Institution Name
-        except:
-          self.sitestr = 'Site Unknown'
+        self.sitestr = 'Site Unknown'
 
-      try:
-        self.idstr = hdr_dcm1[0x12,0x40].value #Clinical Trial Subject ID
-      except:
-        self.idstr = 'ID Unknown'
+    try:
+      self.idstr = hdr_dcm1[0x12,0x40].value #Clinical Trial Subject ID
+    except:
+      self.idstr = 'ID Unknown'
 
-      try:
-        self.visitstr = hdr_dcm1[0x12,0x50].value #Clinical Trial Time Point ID
-        #7/4/2021: Try to use directory structure if visit number not found
-        #in Clinical Trial Time Point id header field
-        if('1' not in self.visitstr and '2' not in self.visitstr and '3' not in self.visitstr and '4' not in self.visitstr and '5' not in self.visitstr):
-          #6/29/2021: Default to 'Visit unknown',
-          #change this if visit is found in exampath
-          if(self.studystr == 'ispy_2022' or self.studystr == 'ispy2.2' or ('//researchfiles' in self.exampath and 'ispy_2022' in self.exampath)):
-            self.visitstr = 'Visit unknown'
-            if('v10' in self.exampath):
-              self.visitstr = 'A0'
-              
-            if('v20' in self.exampath):
-              self.visitstr = 'A3W'
-              
-            if('v25' in self.exampath):
-              self.visitstr = 'A6W'
-              
-            if('v30' in self.exampath):
-              self.visitstr = 'A12W'
+    try:
+      self.visitstr = hdr_dcm1[0x12,0x50].value #Clinical Trial Time Point ID
+      #7/4/2021: Try to use directory structure if visit number not found
+      #in Clinical Trial Time Point id header field
+      self.visitstr = 'MR1'
 
-            if('v35' in self.exampath):
-              self.visitstr = 'AC2'
-
-            if('v40' in self.exampath):
-              self.visitstr = 'S1'
-              
-            if('v71' in self.exampath):
-              self.visitstr = 'B3W'
-
-            if('v72' in self.exampath):
-              self.visitstr = 'B6W'
-
-            if('v73' in self.exampath):
-              self.visitstr = 'B12W'
-
-          else:
-            self.visitstr = 'Visit unknown'
-            if('v10' in self.exampath):
-              self.visitstr = 'MR1'
-              
-            if('v20' in self.exampath):
-              self.visitstr = 'MR2'
-
-            if('v30' in self.exampath):
-              self.visitstr = 'MR3'
-
-            if('v40' in self.exampath):
-              self.visitstr = 'MR4'
-
-      except:
-        #6/29/2021: Default to 'Visit unknown',
-        #change this is visit is found in exampath
-        if(self.studystr == 'ispy_2022' or self.studystr == 'ispy2.2' or ('//researchfiles' in self.exampath and 'ispy_2022' in self.exampath)):
-           self.visitstr = 'Visit unknown'
-           if('v10' in self.exampath):
-             self.visitstr = 'A0'
-              
-           if('v20' in self.exampath):
-             self.visitstr = 'A3W'
-              
-           if('v25' in self.exampath):
-             self.visitstr = 'A6W'
-              
-           if('v30' in self.exampath):
-             self.visitstr = 'A12W'
-
-           if('v35' in self.exampath):
-             self.visitstr = 'AC2'
-
-           if('v40' in self.exampath):
-             self.visitstr = 'S1'
-              
-           if('v71' in self.exampath):
-             self.visitstr = 'B3W'
-
-           if('v72' in self.exampath):
-             self.visitstr = 'B6W'
-
-           if('v73' in self.exampath):
-             self.visitstr = 'B12W'
-
-        else:
-          self.visitstr = 'Visit unknown'
-          if('v10' in self.exampath):
-            self.visitstr = 'MR1'
-
-          if('v20' in self.exampath):
-            self.visitstr = 'MR2'
-
-          if('v30' in self.exampath):
-            self.visitstr = 'MR3'
-
-          if('v40' in self.exampath):
-            self.visitstr = 'MR4'
-
+    except:
+      #6/29/2021: Default to 'Visit unknown',
+      #change this is visit is found in exampath
+      self.visitstr = 'MR1'
 
     #Do this so you can have MR2.5 but MR1 will not be written as MR1.0
     #Edit 10/30/2020: Use new method of getting visitnum
-    if('ispy_2019' in self.exampath or 'ispy2' in self.exampath or 'acrin' in self.exampath):
-      vpos = self.visitstr.find('v')
-      visitnum = int(self.visitstr[vpos+1:vpos+3])
-      #date is either the 6 digit number just before the '_' or just after the '_'
-      try:
-        self.datestr = self.visitstr.split('_')[0]
-      except:
-        self.datestr = self.visitstr.split('_')[1]
-
-
-      if(visitnum%10 == 0):
-        mrnum = int(visitnum/10)
-      else:
-        mrnum = float(visitnum/10)
-
-      self.nodevisstr = 'MR'+str(mrnum)+' ' #v10 = MR1, v20 = MR2, etc
-      print("first step")
-      print(self.nodevisstr)
-      
-    else:
-      if('v10' in self.exampath):
-        self.visitstr = 'A0'
-
-      if('v20' in self.exampath):
-        self.visitstr = 'A3W'
-              
-      if('v25' in self.exampath):
-        self.visitstr = 'A6W'
-             
-      if('v30' in self.exampath):
-        self.visitstr = 'A12W'
-
-      if('v35' in self.exampath):
-        self.visitstr = 'AC2'
-
-      if('v40' in self.exampath):
-        self.visitstr = 'S1'
-              
-      if('v71' in self.exampath):
-        self.visitstr = 'B3W'
-
-      if('v72' in self.exampath):
-        self.visitstr = 'B6W'
-
-      if('v73' in self.exampath):
-        self.visitstr = 'B12W'
-
-      self.nodevisstr = self.visitstr + ' '
-      self.datestr = hdr_dcm1[0x8,0x20].value #Study Date
-      print("else step")
-      print(self.nodevisstr)
+    self.nodevisstr = 'MR1'
+    print("first step")
+    print(self.nodevisstr)
+    self.datestr = hdr_dcm1[0x8,0x20].value #Study Date
       
       
     #Use info from exampath to add a label at the top of the module that
@@ -649,98 +500,43 @@ class DCE_TumorMapProcessWidget(ScriptedLoadableModuleWidget):
 
     #Edit 7/2/2020: automatically save numpy array for pre-contrast image
     #Edit 7/29/2020: save pre-contrast image from every visit that is loaded into a numpy array
-    if(self.studystr == 'ispy_2022' or self.studystr == 'ispy2.2' or ('//researchfiles' in self.exampath and 'ispy_2022' in self.exampath)):
-      try:
-        self.a1 = getNPImgFromNode("A0 pre-contrast")
-      except:
-        print("A0 doesn't exist or is not loaded to Slicer")
+    try:
+      self.a1 = getNPImgFromNode("MR1 pre-contrast")
+    except:
+      print("MR1 doesn't exist or is not loaded to Slicer")
 
-      try:
-        self.a2 = getNPImgFromNode("A3W pre-contrast")
-      except:
-        print("A3W doesn't exist or is not loaded to Slicer")
+    try:
+      self.a2 = getNPImgFromNode("MR2 pre-contrast")
+    except:
+      print("MR2 doesn't exist or is not loaded to Slicer")
 
-      try:
-        self.a25 = getNPImgFromNode("A6W pre-contrast")
-      except:
-        print("A6W doesn't exist or is not loaded to Slicer")
+    try:
+      self.a25 = getNPImgFromNode("MR2.5 pre-contrast")
+    except:
+      print("MR2.5 doesn't exist or is not loaded to Slicer")
 
-      try:
-        self.a3 = getNPImgFromNode("A12W pre-contrast")
-      except:
-        print("A12W doesn't exist or is not loaded to Slicer")
+    try:
+      self.a3 = getNPImgFromNode("MR3 pre-contrast")
+    except:
+      print("MR3 doesn't exist or is not loaded to Slicer")
 
-      try:
-        self.a35 = getNPImgFromNode("AC2 pre-contrast")
-      except:
-        print("AC2 doesn't exist or is not loaded to Slicer")
+    try:
+      self.a4 = getNPImgFromNode("MR4 pre-contrast")
+    except:
+      print("MR4 doesn't exist or is not loaded to Slicer")
 
-      try:
-        self.a4 = getNPImgFromNode("S1 pre-contrast")
-      except:
-        print("S1 doesn't exist or is not loaded to Slicer")
+    try:
+      self.a5 = getNPImgFromNode("MR5 pre-contrast")
+    except:
+      print("MR5 doesn't exist or is not loaded to Slicer")
 
-      try:
-        self.a71 = getNPImgFromNode("B3W pre-contrast")
-      except:
-        print("B3W doesn't exist or is not loaded to Slicer")
-
-      try:
-        self.a72 = getNPImgFromNode("B6W pre-contrast")
-      except:
-        print("B6W doesn't exist or is not loaded to Slicer")
-
-      try:
-        self.a73 = getNPImgFromNode("B12W pre-contrast")
-      except:
-        print("B12W doesn't exist or is not loaded to Slicer")
-
-    #7/3/2021: Add another case for when visit is not found.
-      try:
-        if('MR' not in self.visitstr):
-          precontraststr = self.visitstr + " pre-contrast"
-          self.a = getNPImgFromNode(precontraststr)
-      except:
-        print("pre-contrast with unknown visit doesn't exist")
-
-    else:
-      try:
-        self.a1 = getNPImgFromNode("MR1 pre-contrast")
-      except:
-        print("MR1 doesn't exist or is not loaded to Slicer")
-
-      try:
-        self.a2 = getNPImgFromNode("MR2 pre-contrast")
-      except:
-        print("MR2 doesn't exist or is not loaded to Slicer")
-
-      try:
-        self.a25 = getNPImgFromNode("MR2.5 pre-contrast")
-      except:
-        print("MR2.5 doesn't exist or is not loaded to Slicer")
-
-      try:
-        self.a3 = getNPImgFromNode("MR3 pre-contrast")
-      except:
-        print("MR3 doesn't exist or is not loaded to Slicer")
-
-      try:
-        self.a4 = getNPImgFromNode("MR4 pre-contrast")
-      except:
-        print("MR4 doesn't exist or is not loaded to Slicer")
-
-      try:
-        self.a5 = getNPImgFromNode("MR5 pre-contrast")
-      except:
-        print("MR5 doesn't exist or is not loaded to Slicer")
-
-    #7/3/2021: Add another case for when visit is not found.
-      try:
-        if('MR' not in self.visitstr):
-          precontraststr = self.visitstr + " pre-contrast"
-          self.a = getNPImgFromNode(precontraststr)
-      except:
-        print("pre-contrast with unknown visit doesn't exist")
+  #7/3/2021: Add another case for when visit is not found.
+    try:
+      if('MR' not in self.visitstr):
+        precontraststr = self.visitstr + " pre-contrast"
+        self.a = getNPImgFromNode(precontraststr)
+    except:
+      print("pre-contrast with unknown visit doesn't exist")
 
     #Edit 11/6/2020: Repeat part of updateSlicePrint code here because apparently just calling the function without connecting it to slice scrolling doesn't work
     layoutManager = slicer.app.layoutManager()
@@ -792,7 +588,7 @@ class DCE_TumorMapProcessWidget(ScriptedLoadableModuleWidget):
     #Call function that returns RAS coordinate center and radius give input volume and IJK coordinate center and radius
     roicenter_RAS, roiradius_RAS = IJKToRASFunc(roicenter,roiradius,inputVolume)
 
-    self.roi = slicer.vtkMRMLMarkupsLineNode()
+    self.roi = slicer.vtkMRMLMarkupsROINode()
     self.roi.SetXYZ(roicenter_RAS)
     self.roi.SetRadiusXYZ(roiradius_RAS)
     slicer.mrmlScene.AddNode(self.roi)
@@ -859,11 +655,11 @@ class DCE_TumorMapProcessWidget(ScriptedLoadableModuleWidget):
     self.omitCount = 0
 
     #5 omit regions max. These are stored in distinct attributes of widget class object
-    self.omit1 = slicer.vtkMRMLMarkupsLineNode()
-    self.omit2 = slicer.vtkMRMLMarkupsLineNode()
-    self.omit3 = slicer.vtkMRMLMarkupsLineNode()
-    self.omit4 = slicer.vtkMRMLMarkupsLineNode()
-    self.omit5 = slicer.vtkMRMLMarkupsLineNode()
+    self.omit1 = slicer.vtkMRMLMarkupsROINode()
+    self.omit2 = slicer.vtkMRMLMarkupsROINode()
+    self.omit3 = slicer.vtkMRMLMarkupsROINode()
+    self.omit4 = slicer.vtkMRMLMarkupsROINode()
+    self.omit5 = slicer.vtkMRMLMarkupsROINode()
 
     # Save Region to File Button
     #
@@ -1030,48 +826,21 @@ class DCE_TumorMapProcessWidget(ScriptedLoadableModuleWidget):
 
     #1st set of if statements: Choose the correct pre-contrast image
     #to subtract based on which visit's image you are viewing
-
-    if(self.studystr == 'ispy_2022' or self.studystr == 'ispy2.2' or ('//researchfiles' in self.exampath and 'ispy_2022' in self.exampath)):
-      print(self.currentnodename)
-      if('A0' in self.currentnodename or 'v10' in self.currentnodename or 'MR1' in self.currentnodename):
-        a = self.a1
-      if('A3W ' in self.currentnodename or 'v20' in self.currentnodename or 'MR2 ' in self.currentnodename): #Edit 8/14/2020: add space to end of MR2 so that MR2.5 doesn't read this if and get an error
-        a = self.a2
-      if('A6W' in self.currentnodename or 'v25' in self.currentnodename):
-        a = self.a25
-      if('A12W' in self.currentnodename or 'v30' in self.currentnodename):
-        a = self.a3
-      if('AC2' in self.currentnodename or 'v35' in self.currentnodename):
-        a = self.a35
-      if('S1' in self.currentnodename or 'v40' in self.currentnodename):
-        a = self.a4
-      if('B3W' in self.currentnodename or 'v71' in self.currentnodename):
-        a = self.a71
-      if('B6W' in self.currentnodename or 'v72' in self.currentnodename):
-        a = self.a72
-      if('B12W' in self.currentnodename or 'v73' in self.currentnodename):
-        a = self.a73
-      print(a)
-      ##Add another case for when visit is unknown
-      #if('MR' not in self.currentnodename):
-        #a = self.a
-
-    else:
-      if('MR1' in self.currentnodename):
-        a = self.a1
-      if('MR2 ' in self.currentnodename): #Edit 8/14/2020: add space to end of MR2 so that MR2.5 doesn't read this if and get an error
-        a = self.a2
-      if('MR2.5' in self.currentnodename):
-        a = self.a25
-      if('MR3' in self.currentnodename):
-        a = self.a3
-      if('MR4' in self.currentnodename):
-        a = self.a4
-      if('MR5' in self.currentnodename):
-        a = self.a5
-      #7/3/2021: Add another case for when visit is unknown
-      if('MR' not in self.currentnodename):
-        a = self.a
+    if('MR1' in self.currentnodename):
+      a = self.a1
+    if('MR2 ' in self.currentnodename): #Edit 8/14/2020: add space to end of MR2 so that MR2.5 doesn't read this if and get an error
+      a = self.a2
+    if('MR2.5' in self.currentnodename):
+      a = self.a25
+    if('MR3' in self.currentnodename):
+      a = self.a3
+    if('MR4' in self.currentnodename):
+      a = self.a4
+    if('MR5' in self.currentnodename):
+      a = self.a5
+    #7/3/2021: Add another case for when visit is unknown
+    if('MR' not in self.currentnodename):
+      a = self.a
 
     #2nd set of if statements: Compute subtraction image,
     #subtraction axial MIP, or subtraction sagittal MIP
@@ -1897,139 +1666,20 @@ class DCE_TumorMapProcessWidget(ScriptedLoadableModuleWidget):
 
     #Edit 9/14/2020: message box interface for choosing ROI xml file for any visit for current patient
 
-    if('ispy_2019' in self.exampath or 'ispy2' in self.exampath or 'acrin' in self.exampath):
-      #find all visit folders to come up with button labels for message box
-      folders = os.listdir(self.idpath)
-      #Edit 2/4/2021: restrict folders to only include folders with 'v' in the name
-      folders = [f for f in folders if 'v' in f]
-      print(folders)
-      visit_strs = []
-      for f in folders:
-        vpos = f.find('v')
-        vis_id = int(f[vpos+1:vpos+3])
 
-        #date is either the 6 digit number just before the '_' or just after the '_'
-        try:
-          vis_date = f.split('_')[0]
-
-          #Edit 12/14/2020: if statement for case when this split gives you visit instead of date
-          if('v' in vis_date):
-            vis_date = f.split('_')[1]
-
-        except:
-          vis_date = f.split('_')[1]
-
-
-        if(vis_id%10 == 0):
-          visstr = 'MR' + str(int(vis_id/10)) + '\n' + vis_date
-        else:
-          visstr = 'MR' + str(float(vis_id/10)) + '\n' + vis_date
-
-        visit_strs.append(visstr)
-
-      print(visit_strs)
-
-      if len(visit_strs) > 1:
-        #Message box that allows user to choose which visit to load ROI for?
-        choosevisbox = qt.QMessageBox()
-        choosevisbox.setStandardButtons(0) #remove default "Ok" button
-        choosevisbox.setText('Which visit''s ROI do you want to load?')
-
-        #loop for adding buttons corresponding to visits
-        for vs in range(len(visit_strs)):
-          if(vs == 0):
-            button1 = choosevisbox.addButton(visit_strs[vs],qt.QMessageBox.YesRole)
-
-          if(vs == 1):
-            button2 = choosevisbox.addButton(visit_strs[vs],qt.QMessageBox.YesRole)
-
-          if(vs == 2):
-            button3 = choosevisbox.addButton(visit_strs[vs],qt.QMessageBox.YesRole)
-
-          if(vs == 3):
-            button4 = choosevisbox.addButton(visit_strs[vs],qt.QMessageBox.YesRole)
-
-          if(vs == 4):
-            button5 = choosevisbox.addButton(visit_strs[vs],qt.QMessageBox.YesRole)
-
-          if(vs == 5):
-            button6 = choosevisbox.addButton(visit_strs[vs],qt.QMessageBox.YesRole)
-
-          if(vs == 6):
-            button7 = choosevisbox.addButton(visit_strs[vs],qt.QMessageBox.YesRole)
-
-        #show the choose visit box
-        choosevisbox.exec_()
-
-        #set the default path for qfiledialog xml file selection based on user selection from choose visit message box
-        #doing this in a loop because it is not certain for me how many buttons there will be; it depends on which folder user selects
-        for sel in range(len(folders)):
-          if sel == 0:
-            if(choosevisbox.clickedButton() == button1):
-              visitpath = os.path.join(self.idpath,folders[sel])
-              examfolders = os.listdir(visitpath)
-              exampath = os.path.join(visitpath,examfolders[0])
-              self.dflt_xml_dir = os.path.join(exampath,"voi_lps_files")
-
-          if sel == 1:
-            if(choosevisbox.clickedButton() == button2):
-              visitpath = os.path.join(self.idpath,folders[sel])
-              examfolders = os.listdir(visitpath)
-              exampath = os.path.join(visitpath,examfolders[0])
-              self.dflt_xml_dir = os.path.join(exampath,"voi_lps_files")
-
-          if sel == 2:
-            if(choosevisbox.clickedButton() == button3):
-              visitpath = os.path.join(self.idpath,folders[sel])
-              examfolders = os.listdir(visitpath)
-              exampath = os.path.join(visitpath,examfolders[0])
-              self.dflt_xml_dir = os.path.join(exampath,"voi_lps_files")
-
-          if sel == 3:
-            if(choosevisbox.clickedButton() == button4):
-              visitpath = os.path.join(self.idpath,folders[sel])
-              examfolders = os.listdir(visitpath)
-              exampath = os.path.join(visitpath,examfolders[0])
-              self.dflt_xml_dir = os.path.join(exampath,"voi_lps_files")
-
-          if sel == 4:
-            if(choosevisbox.clickedButton() == button5):
-              visitpath = os.path.join(self.idpath,folders[sel])
-              examfolders = os.listdir(visitpath)
-              exampath = os.path.join(visitpath,examfolders[0])
-              self.dflt_xml_dir = os.path.join(exampath,"voi_lps_files")
-
-          if sel == 5:
-            if(choosevisbox.clickedButton() == button6):
-              visitpath = os.path.join(self.idpath,folders[sel])
-              examfolders = os.listdir(visitpath)
-              exampath = os.path.join(visitpath,examfolders[0])
-              self.dflt_xml_dir = os.path.join(exampath,"voi_lps_files")
-
-          if sel == 6:
-            if(choosevisbox.clickedButton() == button7):
-              visitpath = os.path.join(self.idpath,folders[sel])
-              examfolders = os.listdir(visitpath)
-              exampath = os.path.join(visitpath,examfolders[0])
-              self.dflt_xml_dir = os.path.join(exampath,"voi_lps_files")
-
-      #If only one visit folder, choose that as your xml default directory
-      else:
-        self.dflt_xml_dir = os.path.join(self.exampath,"voi_lps_files")
-    else:
-      #If not \\researchfiles MR exam directory structure
-      #Edit 6/29/2021: David wants this to default to the
-      #patient folder instead. Try that, and default to
-      #exampath if you get an error.
-      #find indices where slashes '/' occur in exampath
-      slashinds = []
-      for i in range(len(self.exampath)):
-        if(self.exampath[i] == '/'):
-          slashinds.append(i)
-      try:
-        self.dflt_xml_dir = self.exampath[0:slashinds[-2]+1]
-      except:
-        self.dflt_xml_dir = self.exampath
+    #If not \\researchfiles MR exam directory structure
+    #Edit 6/29/2021: David wants this to default to the
+    #patient folder instead. Try that, and default to
+    #exampath if you get an error.
+    #find indices where slashes '/' occur in exampath
+    slashinds = []
+    for i in range(len(self.exampath)):
+      if(self.exampath[i] == '/'):
+        slashinds.append(i)
+    try:
+      self.dflt_xml_dir = self.exampath[0:slashinds[-2]+1]
+    except:
+      self.dflt_xml_dir = self.exampath
 
     #allow user to select xml file they want to import ROI from, if the exam has existing xml files
     try:
