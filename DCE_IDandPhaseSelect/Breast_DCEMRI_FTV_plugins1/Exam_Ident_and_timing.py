@@ -173,5 +173,21 @@ def runExamIdentAndTiming(exampath,dce_folders_manual,dce_ind_manual,earlyadd,la
             print( "Early post-contrast image is in folder #" + str(dce_folders[earlyPostContrastNum]) )
             print( "Late post-contrast image is in folder #" + str(dce_folders[latePostContrastNum]) )
 
+    print("***WRITING TIMING INFORMATION TO timing_dicom_data.txt***")
+    with open(f"{exampath}/../timing_dicom_data.txt", 'a') as f:
+        f.write(f"Timing Data {studydate} **START**\n")
+        f.write(f"  earlyPostContrastNum: {earlyPostContrastNum}\n")
+        f.write(f"  latePostContrastNum: {latePostContrastNum}\n")
+        f.write(f"  earlydiffmm: {earlydiffmm}\n")
+        f.write(f"  earlydiffss: {earlydiffss}\n")
+        f.write(f"  latediffmm: {latediffmm}\n")
+        f.write(f"  latediffss: {latediffss}\n")
+        f.write(f"  tempres: {tempres}\n")
+        f.write(f"  nslice: {nslice}\n")
+        f.write(f"  dce_folders: {dce_folders}\n")
+        f.write(f"  all_folders_info: {all_folders_info}\n")
+        f.write(f"  dce_ind: {dce_ind}\n")
+        f.write(f"  fsort: {fsort}")
+
     return tempres, all_folders_info, dce_folders, dce_ind, fsort, studydate, nslice, earlyPostContrastNum, latePostContrastNum, earlydiffmm, earlydiffss, latediffmm, latediffss
 
