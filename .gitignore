@@ -400,3 +400,5 @@ FodyWeavers.xsd
 # Local files to ignore
 *.pyc
 .DS_Store
+.vscode/launch.json
+.gitignore
