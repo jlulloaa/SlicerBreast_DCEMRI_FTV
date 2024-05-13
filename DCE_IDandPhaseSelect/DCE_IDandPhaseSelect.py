@@ -102,8 +102,7 @@ from Breast_DCEMRI_FTV_plugins1 import gzip_gunzip_pyfuncs
 #you don't save workspace for those visits.
 
 def loadPreEarlyLate(exampath,visitnum,orig,dce_folders_manual,dce_ind_manual,earlyadd,lateadd):
-    print(f'Cannot find any expected name in EXAMPATH {exampath}')
-    print(f'Cannot find any expected name in EXAMPATH {exampath}')
+  print(f'Cannot find any expected name in EXAMPATH {exampath}')
   nodevisstr = visitnum
   prenodestr = nodevisstr + ' pre-contrast'
   earlynodestr = nodevisstr + ' early post-contrast'
@@ -248,12 +247,9 @@ class DCE_IDandPhaseSelect(ScriptedLoadableModule):
     self.parent.categories = ["FTV Segmentation"]  # TODO: set categories (folders where the module shows up in the module selector)
     self.parent.dependencies = []  # TODO: add here list of module names that this module requires
     self.parent.contributors = ["Rohan Nadkarni (UCSF Breast Imaging Research Group)"]  # TODO: replace with "Firstname Lastname (Organization)"
-    self.parent.helpText = """
-This is an example of scripted loadable module bundled in an extension.
-"""  # TODO: update with short description of the module
+    self.parent.helpText = """ This is an example of scripted loadable module bundled in an extension."""  # TODO: update with short description of the module
     self.parent.helpText += self.getDefaultModuleDocumentationLink()  # TODO: verify that the default URL is correct or change it to the actual documentation
-    self.parent.acknowledgementText = """
-This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc., Andras Lasso, PerkLab,
+    self.parent.acknowledgementText = """ This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc., Andras Lasso, PerkLab,
 and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
 """  # TODO: replace with organization, grant and thanks.
 
@@ -385,9 +381,9 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
       print(f'Files and folders in EXAMPATH: {folders}')
       dcm_folder_found = 0
       # for i in range(len(folders)):
-        print("Looping through folders")
+      #   print("Looping through folders")
       for folder in folders:
-        curr_path = os.path.join(self.exampath,folder)
+        curr_path = os.path.join(self.exampath, folder)
         curr_files = [f for f in os.listdir(curr_path) if (f.lower().endswith('.dcm') | f.isdigit())]
         # curr_files = [f for f in os.listdir(curr_path) if f.endswith('.dcm')]
         # curr_FILES = [f for f in os.listdir(curr_path) if f.endswith('.DCM')]
@@ -444,7 +440,6 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
           #change this is visit is found in exampath
               print("Exception: Set VISITSTR to MR1")
               self.visitstr = 'MR1'
-    # TODO: JU-001 - Up to here (I think)
     # TODO: JU-001 - Up to here (I think)
 
     #7/26/2021: If this step fails, DICOMs in exam directory are compressed.
