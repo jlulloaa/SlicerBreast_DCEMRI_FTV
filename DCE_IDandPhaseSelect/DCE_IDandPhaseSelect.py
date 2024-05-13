@@ -103,6 +103,7 @@ from Breast_DCEMRI_FTV_plugins1 import gzip_gunzip_pyfuncs
 
 def loadPreEarlyLate(exampath,visitnum,orig,dce_folders_manual,dce_ind_manual,earlyadd,lateadd):
     print(f'Cannot find any expected name in EXAMPATH {exampath}')
+    print(f'Cannot find any expected name in EXAMPATH {exampath}')
   nodevisstr = visitnum
   prenodestr = nodevisstr + ' pre-contrast'
   earlynodestr = nodevisstr + ' early post-contrast'
@@ -443,6 +444,7 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
           #change this is visit is found in exampath
               print("Exception: Set VISITSTR to MR1")
               self.visitstr = 'MR1'
+    # TODO: JU-001 - Up to here (I think)
     # TODO: JU-001 - Up to here (I think)
 
     #7/26/2021: If this step fails, DICOMs in exam directory are compressed.
