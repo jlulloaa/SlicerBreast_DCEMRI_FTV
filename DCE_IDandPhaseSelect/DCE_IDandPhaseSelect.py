@@ -35,6 +35,14 @@ import unittest
 import vtk, qt, ctk, slicer
 from qt import *
 from slicer.ScriptedLoadableModule import *
+# JU - From Template Wizard
+from slicer.parameterNodeWrapper import (
+    parameterNodeWrapper,
+    WithinRange,
+)
+from slicer import vtkMRMLScalarVolumeNode
+# End JU - From Template Wizard
+
 import logging
 import numpy as np
 
@@ -94,10 +102,16 @@ from Breast_DCEMRI_FTV_plugins1 import gzip_gunzip_pyfuncs
 #you don't save workspace for those visits.
 
 def loadPreEarlyLate(exampath,visitnum,orig,dce_folders_manual,dce_ind_manual,earlyadd,lateadd):
+    print(f'Cannot find any expected name in EXAMPATH {exampath}')
   nodevisstr = visitnum
   prenodestr = nodevisstr + ' pre-contrast'
   earlynodestr = nodevisstr + ' early post-contrast'
   latenodestr = nodevisstr + ' late post-contrast'
+
+
+
+  #Edit 5/8/2020: Code for identifying manufacturer and then calling manufacturer-specific
+  #function for identifying pre-contrast and post-contrast DCE folder(s)
 
   #Edit 6/11/2020: Call function that does DCE folder and early/late timing identification given exampath
   tempres, all_folders_info, dce_folders, dce_ind, fsort, studydate, nslice, earlyPostContrastNum, latePostContrastNum, earlydiffmm, earlydiffss, latediffmm, latediffss = Exam_Ident_and_timing.runExamIdentAndTiming(exampath,dce_folders_manual,dce_ind_manual,earlyadd,lateadd)
@@ -213,6 +227,14 @@ def loadPreEarlyLate(exampath,visitnum,orig,dce_folders_manual,dce_ind_manual,ea
 
 
 
+# JU alternative way to count slashes avoiding loop over the each element (or index):
+def char_find_positions(string, char, start=0):
+    index = string.find(char, start)
+    if index == -1:
+        return []
+    return [index] + char_find_positions(string, char, index + 1)
+
+
 class DCE_IDandPhaseSelect(ScriptedLoadableModule):
   """Uses ScriptedLoadableModule base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
@@ -257,70 +279,130 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
 
     # Layout within the dummy collapsible button
     self.parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
+    
+    # # TODO: JU - Before selecting the data, add the option to use some of the already loaded datasets:
+    # # Select to apply bias correction filter (N4ITK)
+    # self.useLoadedDatasetButton = qt.QPushButton("Click to select a folder")
+    # self.useLoadedDatasetButton.toolTip = "Click to load data externally"
+    # self.useLoadedDatasetButton.setSizePolicy(qt.QSizePolicy.MinimumExpanding, qt.QSizePolicy.Preferred)
+    # self.parametersFormLayout.addRow("Select an external data source: ", self.useLoadedDatasetButton)
+
+    # # Add vertical spacer
+    # self.layout.addStretch(1)
+    
+    # # TODO: JU - Enable a selector to pick local sequence data:
+    # self.inputSelector = slicer.qMRMLNodeComboBox()
+    # self.inputSelector.nodeTypes = ["vtkMRMLSequenceNode"]
+    # self.inputSelector.selectNodeUponCreation = True
+    # self.inputSelector.addEnabled = False
+    # self.inputSelector.removeEnabled = False
+    # self.inputSelector.noneEnabled = False
+    # self.inputSelector.showHidden = False
+    # self.inputSelector.showChildNodeTypes = False
+    # self.inputSelector.setMRMLScene( slicer.mrmlScene )
+    # self.inputSelector.setToolTip("Pick input volume sequence. Each time point will be registered to the fixed frame.")
+    # self.parametersFormLayout.addRow("Input volume sequence:", self.inputSelector)
+
+    # # TODO: JU - Enable connections between GUI components
+    # # self.useLoadedDatasetButton.connect('clicked(bool)', self.onApplyButton)
+    # # self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onInputSelect)
+
 
     #Edit 2/11/2021: Moving exampath selection here
+    # JU - Open file dialog to select folder:
     self.exampath = qt.QFileDialog.getExistingDirectory(0,("Select folder for DCE-MRI exam"))
+    # JU - Stop execution if user press 'Cancel' TODO: test in platforms other than macos
+    if not self.exampath:
+      # It means user cancelled the operation
+      return
+    
+    # TODO: JU-001 - The section below this line should be wrapped into a function, to allow branching to select external DICOM data or sequences already loaded
 
     #7/6/2021: Add code to convert mapped drive letter path
     #to full path based on Andras Lasso's answer in Slicer forums.
-    if(':' in self.exampath and 'C:' not in self.exampath):
-      self.exampath = str(pathlib.Path(self.exampath).resolve().as_posix())
-      print(self.exampath)
+    # if(':' in self.exampath and 'C:' not in self.exampath):
+    #   self.exampath = str(pathlib.Path(self.exampath).resolve().as_posix())
+    #   print(f'Mapping drive letter - EXAMPATH: {self.exampath}')
+    # JU - generalise this part, if not windows-based path, it doesn't have any effect (TODO: should it be explicitely limited to windows?)
+    self.exampath = str(pathlib.Path(self.exampath).resolve())
 
     #Edit 2/17/2021: Moving code to read exam details from exampath here.
     #As part of this, need to include visitstr as an input to run function
     #find indices where slashes '/' occur in exampath
-    slashinds = []
-    for i in range(len(self.exampath)):
-      if(self.exampath[i] == '/'):
-        slashinds.append(i)
+    # slashinds = []
+    # for i in range(len(self.exampath)):
+    #   if(self.exampath[i] == '/'):
+    #     slashinds.append(i)
+    # JU - Replace this block by an external function
+    # slashinds = char_find_positions(self.exampath, os.sep) #'/') - moved to setupExamDirectories(self)
 
     #If using full path instead of mapped drives
 ##    else:
     #6/28/2021: Make this code compatible with
     #directory structures that are different from
     #our MR exam directories on \\researchfiles.radiology.ucsf.edu
+    # JU - Identifies which study are contained in the folder. 
+    # JU - This can be moved to a class method, somehing along the lines of:
+    # JU - self.setUpExamDirectories(self)
+    # self.setUpExamDirectories(self) 
+    
     #if('//researchfiles' in self.exampath and ('ispy2' in self.exampath or 'ispy_2019' in self.exampath or 'ispy_2022' in self.exampath or 'acrin_6698' in self.exampath) ):
     if (1 == 2):
       print("Scanning via FOLDER STRUCTURE")
-      #study folder name is between the 4th and 5th slashes
-      self.studystr = self.exampath[(int(slashinds[3])+1):int(slashinds[4])]
-      #Correction: ispy_2019 disk contains exams that belong to ispy2 study
-      if(self.studystr == 'ispy_2019'):
-        self.studystr = 'ispy2'
-      if(self.studystr == 'ispy_2022'):
-        self.studystr = 'ispy2.2'
-      #site folder name is between the 5th and 6th slashes
-      self.sitestr = self.exampath[(int(slashinds[4])+1):int(slashinds[5])]
-      #ISPY ID folder name is between the 6th and 7th slashes
-      self.idstr = self.exampath[(int(slashinds[5])+1):int(slashinds[6])]
-      self.idpath = self.exampath[0:int(slashinds[6])] #full path to ispy id folder
-      #folder with visit name in it is between the 7th and 8th slashes
-      self.visitstr = self.exampath[(int(slashinds[6])+1):int(slashinds[7])]
+      self.setupExamDirectory()
+      # #study folder name is between the 4th and 5th slashes
+      # self.studystr = self.exampath[(int(slashinds[3])+1):int(slashinds[4])]
+      # #Correction: ispy_2019 disk contains exams that belong to ispy2 study
+      # if(self.studystr == 'ispy_2019'):
+      #   self.studystr = 'ispy2'
+      # if(self.studystr == 'ispy_2022'):
+      #   self.studystr = 'ispy2.2'
+      # #site folder name is between the 5th and 6th slashes
+      # self.sitestr = self.exampath[(int(slashinds[4])+1):int(slashinds[5])]
+      # #ISPY ID folder name is between the 6th and 7th slashes
+      # self.idstr = self.exampath[(int(slashinds[5])+1):int(slashinds[6])]
+      # self.idpath = self.exampath[0:int(slashinds[6])] #full path to ispy id folder
+      # #folder with visit name in it is between the 7th and 8th slashes
+      # self.visitstr = self.exampath[(int(slashinds[6])+1):int(slashinds[7])]
     else:
       print("Scanning the DICOM HEADER!")
       #6/28/2021: Read info from DICOM header instead of
       #directory for 'generic' exams with other directory structures
+      # TODO: (JU) in here it's assumed the 'generic' exams contains multiple directories (possibly for each visit). 
+      #       But I'd like to generalise it even more, such that it can read a single folder containing all the dicom files. 
+      #       The idea is to keep the logic that sorts everything out based on the DICOM headers
+      # JU - Accessing DICOM metadata of loaded sequences:
+      # >>> currNode = getNodesByClass('vtkMRMLScalarVolumeNode')
+      # >>> instUids = currNode[1].GetAttribute('DICOM.instanceUIDs').split()
+      # >>> slicer.dicomDatabase.fileForInstance(instUids[0])
+      # '/Users/joseulloa/Data/fMRIBreastData/rawS3/9616cb23-4457-47a6-8567-fb7d376a90aa.dcm'
+
       folders = [directory for directory in os.listdir(self.exampath) if os.path.isdir(os.path.join(self.exampath,directory))]
+      if not folders:
+        # (JU) if here, it means no sub-folders but still need to check for files inside
+        folders = [self.exampath]
+      print(f'Files and folders in EXAMPATH: {folders}')
       dcm_folder_found = 0
-      for i in range(len(folders)):
+      # for i in range(len(folders)):
         print("Looping through folders")
-        curr_path = os.path.join(self.exampath,folders[i])
-        curr_files = [f for f in os.listdir(curr_path) if f.endswith('.dcm')]
-        curr_FILES = [f for f in os.listdir(curr_path) if f.endswith('.DCM')]
-        files_noext = [f for f in os.listdir(curr_path) if f.isdigit()]
+      for folder in folders:
+        curr_path = os.path.join(self.exampath,folder)
+        curr_files = [f for f in os.listdir(curr_path) if (f.lower().endswith('.dcm') | f.isdigit())]
+        # curr_files = [f for f in os.listdir(curr_path) if f.endswith('.dcm')]
+        # curr_FILES = [f for f in os.listdir(curr_path) if f.endswith('.DCM')]
+        # files_noext = [f for f in os.listdir(curr_path) if f.isdigit()]
 
         if(len(curr_files) > 2):
           dcm1path = os.path.join(curr_path,curr_files[0])
           dcm_folder_found = 1
 
-        if(len(curr_FILES) > 2):
-          dcm1path = os.path.join(curr_path,curr_FILES[0])
-          dcm_folder_found = 1
+        # if(len(curr_FILES) > 2):
+        #   dcm1path = os.path.join(curr_path,curr_FILES[0])
+        #   dcm_folder_found = 1
 
-        if(len(files_noext) > 2):
-          dcm1path = os.path.join(curr_path,files_noext[0])
-          dcm_folder_found = 1
+        # if(len(files_noext) > 2):
+        #   dcm1path = os.path.join(curr_path,files_noext[0])
+        #   dcm_folder_found = 1
 
         if(dcm_folder_found == 1):
           hdr_dcm1 = pydicom.dcmread(dcm1path,stop_before_pixels = True)
@@ -361,15 +443,18 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
           #change this is visit is found in exampath
               print("Exception: Set VISITSTR to MR1")
               self.visitstr = 'MR1'
+    # TODO: JU-001 - Up to here (I think)
 
     #7/26/2021: If this step fails, DICOMs in exam directory are compressed.
     try:
+      print(f'SETUP function - Reading DICOM headers:')
       print(self.exampath)
       print(self.studystr)
       print(self.sitestr)
       print(self.idstr)
       print(self.visitstr)
     except:
+      print(f'Something happened...')
       slicer.util.confirmOkCancelDisplay("Error. Please decompress all files in exam directory, then try running module again.","Compressed DICOMs Error")
 
     #7/16/2021: Force side-by-side axial-sagittal layout immediately after
@@ -398,6 +483,55 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
     #set min and max possible values of 210 and 510 (seconds) for this spin box
     self.parametersFormLayout.addRow(self.latetime)
 
+
+##    if('ispy' in self.exampath or 'acrin' in self.exampath):
+##      #position of v in visit string
+##      vpos = self.visitstr.find('v')
+##      #2/17/2021: Add exam details retrieved from exampath to DCE folder ID method selection menu.
+##      visnum = self.visitstr[vpos:vpos+3]
+##      visforlbl = 'Visit unknown'
+##      if(visnum == 'v10'):
+##        visforlbl = 'MR1'
+##
+##      if(visnum == 'v20'):
+##        visforlbl = 'MR2'
+##
+##      if(visnum == 'v25'):
+##        visforlbl = 'MR2.5'
+##
+##      if(visnum == 'v30'):
+##        visforlbl = 'MR3'
+##
+##      if(visnum == 'v40'):
+##        visforlbl = 'MR4'
+##
+##      if(visnum == 'v50'):
+##        visforlbl = 'MR5'
+##
+##      self.examlbl = "Choose Preferred Method of DCE Series ID for " + self.sitestr[5:] + " " + self.idstr + " " + visforlbl
+##    else:
+##      visnum = self.visitstr
+##      visforlbl = 'Visit unknown'
+##
+##      if(visnum == 'v10'):
+##        visforlbl = 'MR1'
+##
+##      if(visnum == 'v20'):
+##        visforlbl = 'MR2'
+##
+##      if(visnum == 'v25'):
+##        visforlbl = 'MR2.5'
+##
+##      if(visnum == 'v30'):
+##        visforlbl = 'MR3'
+##
+##      if(visnum == 'v40'):
+##        visforlbl = 'MR4'
+##
+##      if(visnum == 'v50'):
+##        visforlbl = 'MR5'
+##
+##      self.examlbl = "Choose Preferred Method of DCE Series ID for " + self.sitestr + " " + self.idstr + " " + visforlbl
 
     #8/13/2022 New structure for ISPY2.2
     if('ispy_2022' in self.exampath):
@@ -492,6 +626,24 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
   def cleanup(self):
     pass
 
+  # JU 10/05/2024 - Function to wrap how to obtain study details from DICOM metadata
+  def setupExamDirectory(self):
+      slashinds = char_find_positions(self.exampath, os.sep) #'/')
+      #study folder name is between the 4th and 5th slashes
+      self.studystr = self.exampath[(int(slashinds[3])+1):int(slashinds[4])]
+      #Correction: ispy_2019 disk contains exams that belong to ispy2 study
+      if(self.studystr == 'ispy_2019'):
+        self.studystr = 'ispy2'
+      if(self.studystr == 'ispy_2022'):
+        self.studystr = 'ispy2.2'
+      #site folder name is between the 5th and 6th slashes
+      self.sitestr = self.exampath[(int(slashinds[4])+1):int(slashinds[5])]
+      #ISPY ID folder name is between the 6th and 7th slashes
+      self.idstr = self.exampath[(int(slashinds[5])+1):int(slashinds[6])]
+      self.idpath = self.exampath[0:int(slashinds[6])] #full path to ispy id folder
+      #folder with visit name in it is between the 7th and 8th slashes
+      self.visitstr = self.exampath[(int(slashinds[6])+1):int(slashinds[7])]
+    
   #2/11/2021: New function to create or remove manual DCE selection menu.
   def manualDCESelectMenu(self):
 
@@ -520,16 +672,19 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
       self.listLabel.setStyleSheet("margin-left:50%; margin-right:50%;") #Center align the label for the DCE folder checkboxes
       self.parametersFormLayout.addRow(self.listLabel)
 
-      self.listCheckBox = ["Checkbox_1", "Checkbox_2", "Checkbox_3", "Checkbox_4", "Checkbox_5",
-                           "Checkbox_6", "Checkbox_7", "Checkbox_8", "Checkbox_9", "Checkbox_10",
-                           "Checkbox_11", "Checkbox_12", "Checkbox_13", "Checkbox_14", "Checkbox_15",
-                           "Checkbox_16", "Checkbox_17", "Checkbox_18", "Checkbox_19", "Checkbox_20",
-                           "Checkbox_21", "Checkbox_22", "Checkbox_23", "Checkbox_24", "Checkbox_25",
-                           "Checkbox_26", "Checkbox_27", "Checkbox_28", "Checkbox_29", "Checkbox_30",
-                           "Checkbox_31", "Checkbox_32", "Checkbox_33", "Checkbox_34", "Checkbox_35",
-                           "Checkbox_36", "Checkbox_37", "Checkbox_38", "Checkbox_39", "Checkbox_40",
-                           "Checkbox_41", "Checkbox_42", "Checkbox_43", "Checkbox_44", "Checkbox_45",
-                           "Checkbox_46", "Checkbox_47", "Checkbox_48", "Checkbox_49", "Checkbox_50"]
+      # self.listCheckBox = ["Checkbox_1", "Checkbox_2", "Checkbox_3", "Checkbox_4", "Checkbox_5",
+      #                      "Checkbox_6", "Checkbox_7", "Checkbox_8", "Checkbox_9", "Checkbox_10",
+      #                      "Checkbox_11", "Checkbox_12", "Checkbox_13", "Checkbox_14", "Checkbox_15",
+      #                      "Checkbox_16", "Checkbox_17", "Checkbox_18", "Checkbox_19", "Checkbox_20",
+      #                      "Checkbox_21", "Checkbox_22", "Checkbox_23", "Checkbox_24", "Checkbox_25",
+      #                      "Checkbox_26", "Checkbox_27", "Checkbox_28", "Checkbox_29", "Checkbox_30",
+      #                      "Checkbox_31", "Checkbox_32", "Checkbox_33", "Checkbox_34", "Checkbox_35",
+      #                      "Checkbox_36", "Checkbox_37", "Checkbox_38", "Checkbox_39", "Checkbox_40",
+      #                      "Checkbox_41", "Checkbox_42", "Checkbox_43", "Checkbox_44", "Checkbox_45",
+      #                      "Checkbox_46", "Checkbox_47", "Checkbox_48", "Checkbox_49", "Checkbox_50"]
+      # JU: listCheckBox created with a more pythonic way:
+      self.listCheckBox = [f'Checkbox_{idx+1}' for idx in range(50)] # TODO: replace 50 with len(self.img_folders)
+      
       allfolders_str = ''
       #Use loop to populate string that contains all DCE folder names
       for iii in range(len(self.img_folders)):
@@ -598,6 +753,7 @@ class DCE_IDandPhaseSelectLogic(ScriptedLoadableModuleLogic):
 
     #add exampath to parameter node
     exampath_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScriptedModuleNode","path node")
+    print(f'EXAMPATH_NODE: {exampath_node}')
     #edit 2/16/2021: If you did manual DCE folder ID, exampath might already have "gunzipped" in it,
     #but you don't want that part of the folder path saved to the parameter node.
     #Hopefully this edit will prevent Slicer Reports from being saved inside gunzipped folder for manual
@@ -625,6 +781,7 @@ class DCE_IDandPhaseSelectLogic(ScriptedLoadableModuleLogic):
     #and take the 2 characters following that. Realized that 'v' is not necessarily at the end
     #of the visit folder name
 
+    # JU     
     #6/28/2021: Make this part compatible with exams that don't use
     #\\researchfiles MR exam directory structure
     if(1 == 2):

@@ -243,6 +243,8 @@ class DCE_TumorMapProcessWidget(ScriptedLoadableModuleWidget):
     #Edit 7/28/2020: Try reading exampath from parameter node created in 1st module
     #instead of asking user to select folder again
     #1. Retrieve node by name
+    # TODO: (JU) As suggested in the documentation, getNode is prone to error (as I've experienced first hand).
+    #       Instead, the nodes should be identified by ID
     exampath_node = slicer.util.getNode("path node")
     #2. Read exampath from current node in pathSelector
     self.exampath = exampath_node.GetParameter("exampath")
