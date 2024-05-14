@@ -323,8 +323,8 @@ def fillExamFolderInfoStructures(exampath):
     img_folders = []
     for i in range(len(folders)):
         curr_path = os.path.join(exampath,folders[i])
-        curr_files = [f for f in os.listdir(curr_path) if f.endswith('.dcm')]
-        curr_FILES = [f for f in os.listdir(curr_path) if f.endswith('.DCM')]
+        
+        curr_files = [f for f in os.listdir(curr_path) if f.lower().endswith('.dcm')]
         curr_files_noext = [f for f in os.listdir(curr_path) if f.isdigit()] #edit 1/26/2021: In some folders, there is a series of DICOM images
                                                                          #with no .dcm or .DCM extension, but all the files have a number as the filename.
 
@@ -332,16 +332,22 @@ def fillExamFolderInfoStructures(exampath):
         #Edit 10/28/2020: Program code to only look at folders that have numerical names
         #Edit 7/6/2021: To make compatible with TCIA Duke exams, must consider folders that start
         #with a number as image folders too.
-        if( (len(curr_files)>0 or len(curr_FILES)>0 or len(curr_files_noext)>0) and ('SlicerReport' not in folders[i]) and (folders[i].isdecimal() or folders[i][0].isdecimal()) ):
-            if(folders[i].isdecimal()):
-                img_folders.append(int(folders[i]))
-            else:
-                if(folders[i][0].isdecimal()):
-                    img_folders.append(folders[i])
+        # if( (len(curr_files)>0 or len(curr_FILES)>0 or len(curr_files_noext)>0) and ('SlicerReport' not in folders[i]) and (folders[i].isdecimal() or folders[i][0].isdecimal()) ):
+        if( (len(curr_files)>0 or len(curr_files_noext)>0) and ('SlicerReport' not in folders[i]) ): # and (folders[i].isdecimal() or folders[i][0].isdecimal()) ):
+            print(f'Processing files in {curr_path}')
+            img_folders.append(folders[i])
+            # if(folders[i].isdecimal()):
+            #     img_folders.append(int(folders[i]))
+            # else:
+            #     if(folders[i][0].isdecimal()):
+            #         img_folders.append(folders[i])
+        else:
+            print(f'Folder and/or files does not follows the required format...')
 
+    print('Sorting files...')
     img_folders = sorted(img_folders) #Edit 2/16/2021: Sort the folders in increasing numerical order
                                       #because that is more user-friendly for manual DCE folder ID.
-    print(img_folders)
+    print(f'Image Folders are: {img_folders}')
 
     #using list of DICOM image folders, make list of structures with DICOM header info from each folder
     all_folders_info = []

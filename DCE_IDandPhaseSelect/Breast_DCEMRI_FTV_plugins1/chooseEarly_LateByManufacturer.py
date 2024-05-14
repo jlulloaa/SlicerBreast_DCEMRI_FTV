@@ -377,17 +377,21 @@ def chooseEarlyLatePhilips(exampath,dce_folders,earlyadd,lateadd):
 
     #Edit 7/17/2020: If 'gunzipped' in exampath, gunzip all DCMs for DCE multivolume folder
     if('gunzipped' in exampath):
-        gzip_gunzip_pyfuncs.gunzipAllFilesDCE(orig_exampath,str(dce_folders[0]))
-        #Edit 3/29/2021: If 2 DCE folders, must also gunzip the 2nd one
-        if(len(dce_folders) == 2):
-            gzip_gunzip_pyfuncs.gunzipAllFilesDCE(orig_exampath,str(dce_folders[1]))
+        # JU - I believe this can be condensated by looking at the last element
+        gzip_gunzip_pyfuncs.gunzipAllFilesDCE(orig_exampath, dce_folders[-1])
+        # gzip_gunzip_pyfuncs.gunzipAllFilesDCE(orig_exampath,str(dce_folders[0]))
+        # #Edit 3/29/2021: If 2 DCE folders, must also gunzip the 2nd one
+        # if(len(dce_folders) == 2):
+        #     gzip_gunzip_pyfuncs.gunzipAllFilesDCE(orig_exampath,str(dce_folders[1]))
 
     #Using test_multivolume_folder_sort to automatically sort dicom filenames
-    if(len(dce_folders) == 1):
-        dcepath = os.path.join(exampath,str(int(dce_folders[0])))
+    print(f'Choosing Early/Late TimePoints - DCE Folders: {dce_folders}')
+    dcepath = os.path.join(exampath,dce_folders[-1])
+    # if(len(dce_folders) == 1):
+    #     dcepath = os.path.join(exampath,str(int(dce_folders[0])))
 
-    if(len(dce_folders) == 2):
-        dcepath = os.path.join(exampath,str(int(dce_folders[1])))
+    # if(len(dce_folders) == 2):
+    #     dcepath = os.path.join(exampath,str(int(dce_folders[1])))
 
     print("dce path")
     print(dcepath)
@@ -466,10 +470,10 @@ def chooseEarlyLatePhilips(exampath,dce_folders,earlyadd,lateadd):
     print(latetime)
 
     earlyPostContrastNum = findClosestTime(imgtimes,earlytime)
-    print(earlyPostContrastNum)
+    print(f'Early Post Contrast Num: {earlyPostContrastNum}')
 
     latePostContrastNum = findClosestTime(imgtimes,latetime)
-    print(latePostContrastNum)
+    print(f'Late Post Contrast Num: {latePostContrastNum}')
 
     #find out how many min and sec after start of 1st post-contrast early post-contrast occurs, for report
     earlydiff = imgtimes[earlyPostContrastNum-1] - trig_times[0]

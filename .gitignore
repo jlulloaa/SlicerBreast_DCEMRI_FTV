@@ -402,3 +402,4 @@ FodyWeavers.xsd
 .DS_Store
 .vscode/launch.json
 .gitignore
+*.pickle

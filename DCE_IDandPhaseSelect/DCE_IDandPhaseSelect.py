@@ -102,13 +102,25 @@ from Breast_DCEMRI_FTV_plugins1 import gzip_gunzip_pyfuncs
 #you don't save workspace for those visits.
 
 def loadPreEarlyLate(exampath,visitnum,orig,dce_folders_manual,dce_ind_manual,earlyadd,lateadd):
-  print(f'Cannot find any expected name in EXAMPATH {exampath}')
-  nodevisstr = visitnum
-  prenodestr = nodevisstr + ' pre-contrast'
-  earlynodestr = nodevisstr + ' early post-contrast'
-  latenodestr = nodevisstr + ' late post-contrast'
 
+  #6/28/2021: Make this compatible with exams that don't use
+  #\\researchfiles directory structure
+  if ('ispy_2019' in exampath or 'ispy2' in exampath or 'acrin' in exampath):
+    #Do this so you can have MR2.5 but MR1 will not be written as MR1.0
+    if(visitnum%10 == 0):
+      mrnum = int(visitnum/10)
+    else:
+      mrnum = float(visitnum/10)
+    nodevisstr = 'MR'+str(mrnum)+' ' #v10 = MR1, v20 = MR2, etc
+    prenodestr = nodevisstr + 'pre-contrast'
+    earlynodestr = nodevisstr + 'early post-contrast'
+    latenodestr = nodevisstr + 'late post-contrast'
 
+  else:
+    nodevisstr = visitnum
+    prenodestr = nodevisstr + ' pre-contrast'
+    earlynodestr = nodevisstr + ' early post-contrast'
+    latenodestr = nodevisstr + ' late post-contrast'
 
   #Edit 5/8/2020: Code for identifying manufacturer and then calling manufacturer-specific
   #function for identifying pre-contrast and post-contrast DCE folder(s)
@@ -276,34 +288,6 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
 
     # Layout within the dummy collapsible button
     self.parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
-    
-    # # TODO: JU - Before selecting the data, add the option to use some of the already loaded datasets:
-    # # Select to apply bias correction filter (N4ITK)
-    # self.useLoadedDatasetButton = qt.QPushButton("Click to select a folder")
-    # self.useLoadedDatasetButton.toolTip = "Click to load data externally"
-    # self.useLoadedDatasetButton.setSizePolicy(qt.QSizePolicy.MinimumExpanding, qt.QSizePolicy.Preferred)
-    # self.parametersFormLayout.addRow("Select an external data source: ", self.useLoadedDatasetButton)
-
-    # # Add vertical spacer
-    # self.layout.addStretch(1)
-    
-    # # TODO: JU - Enable a selector to pick local sequence data:
-    # self.inputSelector = slicer.qMRMLNodeComboBox()
-    # self.inputSelector.nodeTypes = ["vtkMRMLSequenceNode"]
-    # self.inputSelector.selectNodeUponCreation = True
-    # self.inputSelector.addEnabled = False
-    # self.inputSelector.removeEnabled = False
-    # self.inputSelector.noneEnabled = False
-    # self.inputSelector.showHidden = False
-    # self.inputSelector.showChildNodeTypes = False
-    # self.inputSelector.setMRMLScene( slicer.mrmlScene )
-    # self.inputSelector.setToolTip("Pick input volume sequence. Each time point will be registered to the fixed frame.")
-    # self.parametersFormLayout.addRow("Input volume sequence:", self.inputSelector)
-
-    # # TODO: JU - Enable connections between GUI components
-    # # self.useLoadedDatasetButton.connect('clicked(bool)', self.onApplyButton)
-    # # self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onInputSelect)
-
 
     #Edit 2/11/2021: Moving exampath selection here
     # JU - Open file dialog to select folder:
@@ -331,7 +315,7 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
     #   if(self.exampath[i] == '/'):
     #     slashinds.append(i)
     # JU - Replace this block by an external function
-    # slashinds = char_find_positions(self.exampath, os.sep) #'/') - moved to setupExamDirectories(self)
+    slashinds = char_find_positions(self.exampath, os.sep) #'/') - moved to setupExamDirectories(self)
 
     #If using full path instead of mapped drives
 ##    else:
@@ -343,40 +327,31 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
     # JU - self.setUpExamDirectories(self)
     # self.setUpExamDirectories(self) 
     
-    #if('//researchfiles' in self.exampath and ('ispy2' in self.exampath or 'ispy_2019' in self.exampath or 'ispy_2022' in self.exampath or 'acrin_6698' in self.exampath) ):
-    if (1 == 2):
+    if('//researchfiles' in self.exampath and ('ispy2' in self.exampath or 'ispy_2019' in self.exampath or 'ispy_2022' in self.exampath or 'acrin_6698' in self.exampath) ):
+    # if (1 == 2):
       print("Scanning via FOLDER STRUCTURE")
       self.setupExamDirectory()
-      # #study folder name is between the 4th and 5th slashes
-      # self.studystr = self.exampath[(int(slashinds[3])+1):int(slashinds[4])]
-      # #Correction: ispy_2019 disk contains exams that belong to ispy2 study
-      # if(self.studystr == 'ispy_2019'):
-      #   self.studystr = 'ispy2'
-      # if(self.studystr == 'ispy_2022'):
-      #   self.studystr = 'ispy2.2'
-      # #site folder name is between the 5th and 6th slashes
-      # self.sitestr = self.exampath[(int(slashinds[4])+1):int(slashinds[5])]
-      # #ISPY ID folder name is between the 6th and 7th slashes
-      # self.idstr = self.exampath[(int(slashinds[5])+1):int(slashinds[6])]
-      # self.idpath = self.exampath[0:int(slashinds[6])] #full path to ispy id folder
-      # #folder with visit name in it is between the 7th and 8th slashes
-      # self.visitstr = self.exampath[(int(slashinds[6])+1):int(slashinds[7])]
+      #study folder name is between the 4th and 5th slashes
+      self.studystr = self.exampath[(int(slashinds[3])+1):int(slashinds[4])]
+      #Correction: ispy_2019 disk contains exams that belong to ispy2 study
+      if(self.studystr == 'ispy_2019'):
+        self.studystr = 'ispy2'
+      if(self.studystr == 'ispy_2022'):
+        self.studystr = 'ispy2.2'
+      #site folder name is between the 5th and 6th slashes
+      self.sitestr = self.exampath[(int(slashinds[4])+1):int(slashinds[5])]
+      #ISPY ID folder name is between the 6th and 7th slashes
+      self.idstr = self.exampath[(int(slashinds[5])+1):int(slashinds[6])]
+      self.idpath = self.exampath[0:int(slashinds[6])] #full path to ispy id folder
+      #folder with visit name in it is between the 7th and 8th slashes
+      self.visitstr = self.exampath[(int(slashinds[6])+1):int(slashinds[7])]
     else:
       print("Scanning the DICOM HEADER!")
       #6/28/2021: Read info from DICOM header instead of
       #directory for 'generic' exams with other directory structures
-      # TODO: (JU) in here it's assumed the 'generic' exams contains multiple directories (possibly for each visit). 
-      #       But I'd like to generalise it even more, such that it can read a single folder containing all the dicom files. 
-      #       The idea is to keep the logic that sorts everything out based on the DICOM headers
-      # JU - Accessing DICOM metadata of loaded sequences:
-      # >>> currNode = getNodesByClass('vtkMRMLScalarVolumeNode')
-      # >>> instUids = currNode[1].GetAttribute('DICOM.instanceUIDs').split()
-      # >>> slicer.dicomDatabase.fileForInstance(instUids[0])
-      # '/Users/joseulloa/Data/fMRIBreastData/rawS3/9616cb23-4457-47a6-8567-fb7d376a90aa.dcm'
 
       folders = [directory for directory in os.listdir(self.exampath) if os.path.isdir(os.path.join(self.exampath,directory))]
       if not folders:
-        # (JU) if here, it means no sub-folders but still need to check for files inside
         folders = [self.exampath]
       print(f'Files and folders in EXAMPATH: {folders}')
       dcm_folder_found = 0
@@ -403,53 +378,233 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
 
         if(dcm_folder_found == 1):
           hdr_dcm1 = pydicom.dcmread(dcm1path,stop_before_pixels = True)
-          try:
-            self.studystr = hdr_dcm1[0x12,0x10].value #Clinical Trial Sponsor Name
-          except:
-            try:
-              self.studystr = hdr_dcm1[0x8,0x1030].value #Study Description
-            except:
-              print("Trial Name Unknown")
+          # JU - I believe if/elif/else block will provide better error control than try/except, especially for not-ispy2 datasets
+          # JU - Define STUDYSTR:
+          if (0x0012, 0x0010) in hdr_dcm1:
+            self.studystr = hdr_dcm1[0x0012,0x0010].value #Clinical Trial Sponsor Name
+            print(f'Clinical Trial Sponsor Name: {self.studystr}')
+          elif (0x0008, 0x1030) in hdr_dcm1:
+              self.studystr = hdr_dcm1[0x0008,0x1030].value #Study Description
+              print(f'Trial Description: {self.studystr}')
+          else:
               self.studystr = 'Trial Name Unknown'
-
-          try:
-            self.sitestr = hdr_dcm1[0x12,0x31].value #Clinical Trial Site Name
-          except:
-            try:
-              self.sitestr = hdr_dcm1[0x8,0x80].value #Institution Name
-            except:
-              print("Site Unknown")
-              self.sitestr = 'Site Unknown'
-
-          try:
-            self.idstr = hdr_dcm1[0x12,0x40].value #Clinical Trial Subject ID
-          except:
-            print("ID Unknown")
+              print("Trial Name Unknown")
+              
+          # JU - Define SITESTR:
+          if (0x0012, 0x0031) in hdr_dcm1:
+            self.sitestr = hdr_dcm1[0x0012,0x0031].value #Clinical Trial Site Name
+            print(f'Clinical Trial Site Name: {self.sitestr}')
+          elif (0x0008, 0x0080) in hdr_dcm1:
+            self.sitestr = hdr_dcm1[0x0008,0x0080].value #Institution Name
+            print(f'Institution Name: {self.sitestr}')
+          else:
+            self.sitestr = 'Site Unknown'
+            print("Site Unknown")
+            
+          # JU - Define SITESTR:
+          if (0x0012, 0x0040) in hdr_dcm1:
+            self.idstr = hdr_dcm1[0x0012,0x0040].value #Clinical Trial Subject ID
+            print(f'Clinical Trial Subject ID: {self.idstr}')
+          else:
             self.idstr = 'ID Unknown'
+            print("ID Unknown")
 
-          try:
-            self.visitstr = hdr_dcm1[0x12,0x50].value #Clinical Trial Time Point ID
+          # try:
+          #   self.studystr = hdr_dcm1[0x12,0x10].value #Clinical Trial Sponsor Name
+          #   print(f'Clinical Trial Sponsor Name: {self.studystr}')
+          # except:
+          #   try:
+          #     self.studystr = hdr_dcm1[0x8,0x1030].value #Study Description
+          #     print(f'Trial Description: {self.studystr}')
+          #   except:
+          #     print("Trial Name Unknown")
+          #     self.studystr = 'Trial Name Unknown'
+
+          # try:
+          #   self.sitestr = hdr_dcm1[0x12,0x31].value #Clinical Trial Site Name
+          #   print(f'Clinical Trial Site Name: {self.sitestr}')
+          # except:
+          #   try:
+          #     self.sitestr = hdr_dcm1[0x8,0x80].value #Institution Name
+          #     print(f'Institution Name: {self.sitestr}')
+          #   except:
+          #     print("Site Unknown")
+          #     self.sitestr = 'Site Unknown'
+
+          # try:
+          #   self.idstr = hdr_dcm1[0x12,0x40].value #Clinical Trial Subject ID
+          #   print(f'Clinical Trial Subject ID: {self.idstr}')
+          # except:
+          #   print("ID Unknown")
+          #   self.idstr = 'ID Unknown'
+
+          # JU - Define VISITSTR:
+          # default to Visit Unknown (MR1 may be a better option):
+          self.visitstr = 'MR1' #'Visit Unknown'
+          if (0x0012, 0x0050) in hdr_dcm1:
+            self.visitstr = hdr_dcm1[0x0012,0x0050].value #Clinical Trial Time Point ID
             print(f"RAW Visitstr: {self.visitstr}")
-            #7/4/2021: Try to use directory structure if visit number not found
-            #in Clinical Trial Time Point id header field
-            print("LN376: Set VISITSTR to MR1")
-            self.visitstr = 'MR1'
+            # JU - If timepoint cannot be derived from the string
+            if not any([(visitNro in self.visitstr) for visitNro in [str(i) for i in range(1, 6)]]):
+              print(f'String "{self.visitstr}", does not contain any visit number')
+              if(self.studystr == 'ispy_2022' or self.studystr == 'ispy2.2' or ('//researchfiles' in self.exampath and 'ispy_2022' in self.exampath)):
+                print("Check VISITSTR via ISPY DIRECTORY PATHING")
+                if('v10' in self.exampath):
+                  self.visitstr = 'A0'
 
-          except:
+                if('v20' in self.exampath):
+                  self.visitstr = 'A3W'
+
+                if('v25' in self.exampath):
+                  self.visitstr = 'A6W'
+
+                if('v30' in self.exampath):
+                  self.visitstr = 'A12W'
+
+                if('v35' in self.exampath):
+                  self.visitstr = 'AC2'
+
+                if('v40' in self.exampath):
+                  self.visitstr = 'S1'
+
+                if('v71' in self.exampath):
+                  self.visitstr = 'B3W'
+
+                if('v72' in self.exampath):
+                  self.visitstr = 'B6W'
+
+                if('v73' in self.exampath):
+                  self.visitstr = 'B12W'
+
+              else:
+                print("Check VISITSTR via other method -- unknown")
+                if('v10' in self.exampath):
+                  self.visitstr = 'MR1'
+
+                if('v20' in self.exampath):
+                  self.visitstr = 'MR2'
+
+                if('v30' in self.exampath):
+                  self.visitstr = 'MR3'
+
+                if('v40' in self.exampath):
+                  self.visitstr = 'MR4'
+          print(f'Parameter visitstr has been set to: {self.visitstr}')          
+          # try:
+          #   self.visitstr = hdr_dcm1[0x12,0x50].value #Clinical Trial Time Point ID
+          #   print(f"RAW Visitstr: {self.visitstr}")
+          #   #7/4/2021: Try to use directory structure if visit number not found
+          #   #in Clinical Trial Time Point id header field
+          #   if('1' not in self.visitstr and '2' not in self.visitstr and '3' not in self.visitstr and '4' not in self.visitstr and '5' not in self.visitstr):
+          #     #6/29/2021: Default to 'Visit unknown',
+          #     #change this if visit is found in exampath
+          #     if(self.studystr == 'ispy_2022' or self.studystr == 'ispy2.2' or ('//researchfiles' in self.exampath and 'ispy_2022' in self.exampath)):
+          #       print("Check VISITSTR via ISPY DIRECTORY PATHING")
+          #       self.visitstr = 'Visit unknown'
+          #       if('v10' in self.exampath):
+          #         self.visitstr = 'A0'
+
+          #       if('v20' in self.exampath):
+          #         self.visitstr = 'A3W'
+
+          #       if('v25' in self.exampath):
+          #         self.visitstr = 'A6W'
+
+          #       if('v30' in self.exampath):
+          #         self.visitstr = 'A12W'
+
+          #       if('v35' in self.exampath):
+          #         self.visitstr = 'AC2'
+
+          #       if('v40' in self.exampath):
+          #         self.visitstr = 'S1'
+
+          #       if('v71' in self.exampath):
+          #         self.visitstr = 'B3W'
+
+          #       if('v72' in self.exampath):
+          #         self.visitstr = 'B6W'
+
+          #       if('v73' in self.exampath):
+          #         self.visitstr = 'B12W'
+
+          #     else:
+          #       print("Check VISITSTR via other method -- unknown")
+          #       self.visitstr = 'Visit unknown'
+          #       if('v10' in self.exampath):
+          #         self.visitstr = 'MR1'
+
+          #       if('v20' in self.exampath):
+          #         self.visitstr = 'MR2'
+
+          #       if('v30' in self.exampath):
+          #         self.visitstr = 'MR3'
+
+          #       if('v40' in self.exampath):
+          #         self.visitstr = 'MR4'
+          #   print("LN376: Set VISITSTR to MR1")
+          #   self.visitstr = 'MR1'
+
+          # except:
           #6/29/2021: Default to 'Visit unknown',
           #change this is visit is found in exampath
-              print("Exception: Set VISITSTR to MR1")
-              self.visitstr = 'MR1'
+              # if(self.studystr == 'ispy_2022' or self.studystr == 'ispy2.2' or ('//researchfiles' in self.exampath and 'ispy_2022' in self.exampath)):
+              #   print("Exception: Check VISITSTR via ISPY DIRECTORY PATHING")
+              #   self.visitstr = 'Visit unknown'
+              #   if('v10' in self.exampath):
+              #     self.visitstr = 'A0'
+
+              #   if('v20' in self.exampath):
+              #     self.visitstr = 'A3W'
+
+              #   if('v25' in self.exampath):
+              #     self.visitstr = 'A6W'
+
+              #   if('v30' in self.exampath):
+              #     self.visitstr = 'A12W'
+
+              #   if('v35' in self.exampath):
+              #     self.visitstr = 'AC2'
+
+              #   if('v40' in self.exampath):
+              #     self.visitstr = 'S1'
+
+              #   if('v71' in self.exampath):
+              #     self.visitstr = 'B3W'
+
+              #   if('v72' in self.exampath):
+              #     self.visitstr = 'B6W'
+
+              #   if('v73' in self.exampath):
+              #     self.visitstr = 'B12W'
+
+              # else:
+              #   print("Check VISITSTR via OTHER -- unknown")
+              #   self.visitstr = 'Visit unknown'
+              #   if('v10' in self.exampath):
+              #     self.visitstr = 'MR1'
+
+              #   if('v20' in self.exampath):
+              #     self.visitstr = 'MR2'
+
+              #   if('v30' in self.exampath):
+              #     self.visitstr = 'MR3'
+
+              #   if('v40' in self.exampath):
+              #     self.visitstr = 'MR4'
+                          
+              # print("Exception: Set VISITSTR to MR1")
+              # self.visitstr = 'MR1'
     # TODO: JU-001 - Up to here (I think)
 
     #7/26/2021: If this step fails, DICOMs in exam directory are compressed.
     try:
       print(f'SETUP function - Reading DICOM headers:')
-      print(self.exampath)
-      print(self.studystr)
-      print(self.sitestr)
-      print(self.idstr)
-      print(self.visitstr)
+      print(f'\tEXAMPATH: {self.exampath}')
+      print(f'\tSTUDY ID: {self.studystr}')
+      print(f'\tSITE ID: {self.sitestr}')
+      print(f'\tID STRING: {self.idstr}')
+      print(f'\tVISIT ID: {self.visitstr}')
     except:
       print(f'Something happened...')
       slicer.util.confirmOkCancelDisplay("Error. Please decompress all files in exam directory, then try running module again.","Compressed DICOMs Error")
@@ -656,7 +811,7 @@ class DCE_IDandPhaseSelectWidget(ScriptedLoadableModuleWidget):
         gzip_gunzip_pyfuncs.extractGZ(self.exampath) #create folders with unzipped DICOMs
         self.exampath = os.path.join(self.exampath,"gunzipped") #set new exampath to gunzip folder inside of exam folder
 
-
+      print(f'Manual Selection: {self.exampath}')
       #First, fill header info structures for all DICOM folders in exam
       self.img_folders, self.all_folders_info = Get_header_info_all_manufacturer.fillExamFolderInfoStructures(self.exampath)
 
@@ -781,7 +936,8 @@ class DCE_IDandPhaseSelectLogic(ScriptedLoadableModuleLogic):
     # JU     
     #6/28/2021: Make this part compatible with exams that don't use
     #\\researchfiles MR exam directory structure
-    if(1 == 2):
+    if('ispy_2019' in exampath or 'ispy2' in exampath or 'acrin' in exampath):
+    # if(1 == 2):
       vpos = visitstr.find('v')
       visitnum = int(visitstr[vpos+1:vpos+3])
     else:
@@ -819,6 +975,7 @@ class DCE_IDandPhaseSelectLogic(ScriptedLoadableModuleLogic):
     #This means that if you add nodes for your visit after you add nodes for other visits, the wrong
     #image will be used as precontrast when computing subtraction images.
     #Call function for generating pre, early, and late nodes for the visit & exam you will do FTV processing for
+    print(f'Visit Number (928): {visitnum}')
     precontrast_node, early_post_node, late_post_node = loadPreEarlyLate(exampath,visitnum,1,dce_folders_manual,dce_ind_manual,earlyadd,lateadd)
     
     print("All images loaded to Slicer")
